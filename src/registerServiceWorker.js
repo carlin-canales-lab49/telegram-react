@@ -22,203 +22,205 @@ import NotificationStore from './Stores/NotificationStore';
 import TdLibController from './Controllers/TdLibController';
 
 const isLocalhost =
-    //false;
-    Boolean(
-        window.location.hostname === 'localhost' ||
-            // [::1] is the IPv6 localhost address.
-            window.location.hostname === '[::1]' ||
-            // 127.0.0.1/8 is considered localhost for IPv4.
-            window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
-    );
+  //false;
+  Boolean(
+    window.location.hostname === 'localhost' ||
+    // [::1] is the IPv6 localhost address.
+    window.location.hostname === '[::1]' ||
+    // 127.0.0.1/8 is considered localhost for IPv4.
+    window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
+  );
 
 export default async function regregisterServiceWorkerister() {
-    console.log('[SW] Register');
+  console.log('[SW] Register');
 
-    if (OPTIMIZATIONS_FIRST_START) {
-        localStorage.setItem('register', 'true');
+  if (OPTIMIZATIONS_FIRST_START) {
+    localStorage.setItem('register', 'true');
+  }
+
+  if ('serviceWorker' in navigator) {
+    // The URL constructor is available in all browsers that support SW.
+    const publicUrl = new URL(process.env.PUBLIC_URL, window.location);
+    if (publicUrl.origin !== window.location.origin) {
+      // Our service worker won't work if PUBLIC_URL is on a different origin
+      // from what our page is served on. This might happen if a CDN is used to
+      // serve assets; see https://github.com/facebookincubator/create-react-app/issues/2374
+      return;
     }
 
-    if ('serviceWorker' in navigator) {
-        // The URL constructor is available in all browsers that support SW.
-        const publicUrl = new URL(process.env.PUBLIC_URL, window.location);
-        if (publicUrl.origin !== window.location.origin) {
-            // Our service worker won't work if PUBLIC_URL is on a different origin
-            // from what our page is served on. This might happen if a CDN is used to
-            // serve assets; see https://github.com/facebookincubator/create-react-app/issues/2374
-            return;
-        }
+    const serviceWorkerName =
+      process.env.NODE_ENV === 'production' ? 'service-worker.js' : 'custom-service-worker.js';
+    const swUrl = `${process.env.PUBLIC_URL}/${serviceWorkerName}`;
+    console.log(`[SW] Service worker url: ${swUrl}`);
 
-        const serviceWorkerName =
-            process.env.NODE_ENV === 'production' ? 'service-worker.js' : 'custom-service-worker.js';
-        const swUrl = `${process.env.PUBLIC_URL}/${serviceWorkerName}`;
-        console.log(`[SW] Service worker url: ${swUrl}`);
-
-        if (!isLocalhost) {
-            // Is not local host. Just register service worker
-            await registerValidSW(swUrl);
-        } else {
-            // This is running on localhost. Lets check if a service worker still exists or not.
-            await checkValidServiceWorker(swUrl);
-        }
+    if (!isLocalhost) {
+      // Is not local host. Just register service worker
+      await registerValidSW(swUrl);
+    } else {
+      // This is running on localhost. Lets check if a service worker still exists or not.
+      await checkValidServiceWorker(swUrl);
     }
+  }
 }
 
 async function registerValidSW(swUrl) {
-    console.log('[SW] register');
-    try {
-        const registration = await navigator.serviceWorker.register(swUrl);
-        registration.onupdatefound = () => {
-            const installingWorker = registration.installing;
-            installingWorker.onstatechange = () => {
-                if (installingWorker.state === 'installed') {
-                    if (navigator.serviceWorker.controller) {
-                        // At this point, the old content will have been purged and
-                        // the fresh content will have been added to the cache.
-                        // It's the perfect time to display a "New content is
-                        // available; please refresh." message in your web app.
-                        console.log('[SW] New content is available; please refresh.');
+  console.log('[SW] register');
+  try {
+    const registration = await navigator.serviceWorker.register(swUrl);
+    registration.onupdatefound = () => {
+      const installingWorker = registration.installing;
+      installingWorker.onstatechange = () => {
+        if (installingWorker.state === 'installed') {
+          if (navigator.serviceWorker.controller) {
+            // At this point, the old content will have been purged and
+            // the fresh content will have been added to the cache.
+            // It's the perfect time to display a "New content is
+            // available; please refresh." message in your web app.
+            console.log('[SW] New content is available; please refresh.');
 
-                        TdLibController.clientUpdate({ '@type': 'clientUpdateNewContentAvailable' });
-                    } else {
-                        // At this point, everything has been precached.
-                        // It's the perfect time to display a
-                        // "Content is cached for offline use." message.
-                        console.log('[SW] Content is cached for offline use.');
-                    }
-                }
-            };
-        };
-    } catch (error) {
-        console.error('[SW] Error during service worker registration: ', error);
-    }
-    console.log('[SW] register complete', navigator.serviceWorker, navigator.serviceWorker.controller);
+            TdLibController.clientUpdate({'@type': 'clientUpdateNewContentAvailable'});
+          } else {
+            // At this point, everything has been precached.
+            // It's the perfect time to display a
+            // "Content is cached for offline use." message.
+            console.log('[SW] Content is cached for offline use.');
+          }
+        }
+      };
+    };
+  } catch (error) {
+    console.error('[SW] Error during service worker registration: ', error);
+  }
+  console.log('[SW] register complete', navigator.serviceWorker, navigator.serviceWorker.controller);
 }
 
 export async function subscribeNotifications() {
-    try {
-        const registration = await navigator.serviceWorker.ready;
+  try {
+    const registration = await navigator.serviceWorker.ready;
 
-        let pushSubscription = await registration.pushManager.getSubscription();
-        if (pushSubscription) await pushSubscription.unsubscribe();
+    let pushSubscription = await registration.pushManager.getSubscription();
+    if (pushSubscription) await pushSubscription.unsubscribe();
 
-        pushSubscription = await registration.pushManager.subscribe({ userVisibleOnly: true });
-        console.log('[SW] Received push subscription: ', JSON.stringify(pushSubscription));
+    pushSubscription = await registration.pushManager.subscribe({userVisibleOnly: true});
+    console.log('[SW] Received push subscription: ', JSON.stringify(pushSubscription));
 
-        const { endpoint } = pushSubscription;
-        const p256dh_base64url = arrayBufferToBase64(pushSubscription.getKey('p256dh'));
-        const auth_base64url = arrayBufferToBase64(pushSubscription.getKey('auth'));
+    const {endpoint} = pushSubscription;
+    const p256dh_base64url = arrayBufferToBase64(pushSubscription.getKey('p256dh'));
+    const auth_base64url = arrayBufferToBase64(pushSubscription.getKey('auth'));
 
-        if (endpoint && p256dh_base64url && auth_base64url) {
-            const { authorizationState } = ApplicationStore;
-            if (isAuthorizationReady(authorizationState)) {
-                const deviceToken = {
-                    '@type': 'deviceTokenWebPush',
-                    endpoint,
-                    p256dh_base64url,
-                    auth_base64url
-                };
-                console.log('[SW] registerDevice', deviceToken);
-                const result = await TdLibController.send({
-                    '@type': 'registerDevice',
-                    device_token: deviceToken,
-                    other_user_ids: []
-                });
-                console.log('[SW] registerDevice result', result);
-            }
-        }
-    } catch (error) {
-        console.error('[SW] Error during service worker push subscription: ', error);
-        NotificationStore.enableSound = true;
+    if (endpoint && p256dh_base64url && auth_base64url) {
+      const {authorizationState} = ApplicationStore;
+      if (isAuthorizationReady(authorizationState)) {
+        const deviceToken = {
+          '@type': 'deviceTokenWebPush',
+          endpoint,
+          p256dh_base64url,
+          auth_base64url
+        };
+        console.log('[SW] registerDevice', deviceToken);
+        const result = await TdLibController.send({
+          '@type': 'registerDevice',
+          device_token: deviceToken,
+          other_user_ids: []
+        });
+        console.log('[SW] registerDevice result', result);
+      }
     }
+  } catch (error) {
+    console.error('[SW] Error during service worker push subscription: ', error);
+    NotificationStore.enableSound = true;
+  }
 }
 
 async function checkValidServiceWorker(swUrl) {
-    console.log('[SW] checkValid');
-    // Check if the service worker can be found. If it can't reload the page.
-    try {
-        const response = await fetch(swUrl);
+  console.log('[SW] checkValid');
+  // Check if the service worker can be found. If it can't reload the page.
+  try {
+    const response = await fetch(swUrl);
 
-        // Ensure service worker exists, and that we really are getting a JS file.
-        if (response.status === 404 || response.headers.get('content-type').indexOf('javascript') === -1) {
-            console.log('[SW] unregister');
-            // No service worker found. Probably a different app. Reload the page.
-            const registration = await navigator.serviceWorker.ready;
-            await registration.unregister();
+    // Ensure service worker exists, and that we really are getting a JS file.
+    if (response.status === 404 || response.headers.get('content-type').indexOf('javascript') === -1) {
+      console.log('[SW] unregister');
+      // No service worker found. Probably a different app. Reload the page.
+      const registration = await navigator.serviceWorker.ready;
+      await registration.unregister();
 
-            window.location.reload();
-        } else {
-            // Service worker found. Proceed as normal.
-            await registerValidSW(swUrl);
-        }
-    } catch (error) {
-        console.log('[SW] No internet connection found. App is running in offline mode.');
+      window.location.reload();
+    } else {
+      // Service worker found. Proceed as normal.
+      await registerValidSW(swUrl);
     }
+  } catch (error) {
+    console.log('[SW] No internet connection found. App is running in offline mode.');
+  }
 }
 
 export async function unregister() {
-    if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
+  if ('serviceWorker' in navigator) {
+    const registration = await navigator.serviceWorker.ready;
 
-        await registration.unregister();
-    }
+    await registration.unregister();
+  }
 }
 
 export async function update() {
-    if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
+  if ('serviceWorker' in navigator) {
+    const registration = await navigator.serviceWorker.ready;
 
-        await registration.update();
-    }
+    await registration.update();
+  }
 }
 
 export function setFileOptions(url, options) {
-    if ('serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator) {
 
-        console.log('[SW] setFileOptions ', navigator.serviceWorker, navigator.serviceWorker.controller);
-        navigator.serviceWorker.controller.postMessage({
-            '@type': 'file',
-            url,
-            options
-        });
-    }
+    console.log('[SW] setFileOptions ', navigator.serviceWorker, navigator.serviceWorker.controller);
+    navigator.serviceWorker.controller.postMessage({
+      '@type': 'file',
+      url,
+      options
+    });
+  }
 }
 
-// navigator.serviceWorker.onmessage = async (e) => {
-//     // console.log('[stream] client.onmessage', e.data);
-//
-//     switch (e.data['@type']) {
-//         case 'getFile': {
-//             const { fileId, offset, limit, size } = e.data;
-//
-//             const l = offset + limit < size ? limit : (size - offset)
-//
-//             await TdLibController.send({
-//                 '@type': 'downloadFile',
-//                 file_id: fileId,
-//                 priority: 1,
-//                 offset,
-//                 limit: l,
-//                 synchronous: true
-//             });
-//
-//             const filePart = await TdLibController.send({
-//                 '@type': 'readFilePart',
-//                 file_id: fileId,
-//                 offset,
-//                 count: l
-//             });
-//
-//             // const buffer = await getArrayBuffer(filePart.data);
-//
-//             // console.log('[stream] client.onmessage buffer', fileId, offset, limit, filePart.data);
-//             navigator.serviceWorker.controller.postMessage({
-//                 '@type': 'getFileResult',
-//                 fileId,
-//                 offset,
-//                 limit,
-//                 data: filePart.data
-//             });
-//             break;
-//         }
-//     }
-// };
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.onmessage = async (e) => {
+    // console.log('[stream] client.onmessage', e.data);
+
+    switch (e.data['@type']) {
+      case 'getFile': {
+        const {fileId, offset, limit, size} = e.data;
+
+        const l = offset + limit < size ? limit : (size - offset)
+
+        await TdLibController.send({
+          '@type': 'downloadFile',
+          file_id: fileId,
+          priority: 1,
+          offset,
+          limit: l,
+          synchronous: true
+        });
+
+        const filePart = await TdLibController.send({
+          '@type': 'readFilePart',
+          file_id: fileId,
+          offset,
+          count: l
+        });
+
+        // const buffer = await getArrayBuffer(filePart.data);
+
+        // console.log('[stream] client.onmessage buffer', fileId, offset, limit, filePart.data);
+        navigator.serviceWorker.controller.postMessage({
+          '@type': 'getFileResult',
+          fileId,
+          offset,
+          limit,
+          data: filePart.data
+        });
+        break;
+      }
+    }
+  };
+}

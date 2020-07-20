@@ -3,6 +3,7 @@
   "startup_app": {
     "name": "Covario Chat Application",
     "url": "https://carlin-canales-lab49.github.io/telegram-react",
+    "uuid": "covario-chat-app-123",
     "autoShow": true,
     "defaultWidth": 800,
     "defaultHeight": 600
