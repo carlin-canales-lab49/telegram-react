@@ -31,7 +31,7 @@ const isLocalhost =
             window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
     );
 
-export default async function register() {
+export default async function regregisterServiceWorkerister() {
     console.log('[SW] Register');
 
     if (OPTIMIZATIONS_FIRST_START) {
@@ -183,42 +183,42 @@ export function setFileOptions(url, options) {
     }
 }
 
-navigator.serviceWorker.onmessage = async (e) => {
-    // console.log('[stream] client.onmessage', e.data);
-
-    switch (e.data['@type']) {
-        case 'getFile': {
-            const { fileId, offset, limit, size } = e.data;
-
-            const l = offset + limit < size ? limit : (size - offset)
-
-            await TdLibController.send({
-                '@type': 'downloadFile',
-                file_id: fileId,
-                priority: 1,
-                offset,
-                limit: l,
-                synchronous: true
-            });
-
-            const filePart = await TdLibController.send({
-                '@type': 'readFilePart',
-                file_id: fileId,
-                offset,
-                count: l
-            });
-
-            // const buffer = await getArrayBuffer(filePart.data);
-
-            // console.log('[stream] client.onmessage buffer', fileId, offset, limit, filePart.data);
-            navigator.serviceWorker.controller.postMessage({
-                '@type': 'getFileResult',
-                fileId,
-                offset,
-                limit,
-                data: filePart.data
-            });
-            break;
-        }
-    }
-};
+// navigator.serviceWorker.onmessage = async (e) => {
+//     // console.log('[stream] client.onmessage', e.data);
+//
+//     switch (e.data['@type']) {
+//         case 'getFile': {
+//             const { fileId, offset, limit, size } = e.data;
+//
+//             const l = offset + limit < size ? limit : (size - offset)
+//
+//             await TdLibController.send({
+//                 '@type': 'downloadFile',
+//                 file_id: fileId,
+//                 priority: 1,
+//                 offset,
+//                 limit: l,
+//                 synchronous: true
+//             });
+//
+//             const filePart = await TdLibController.send({
+//                 '@type': 'readFilePart',
+//                 file_id: fileId,
+//                 offset,
+//                 count: l
+//             });
+//
+//             // const buffer = await getArrayBuffer(filePart.data);
+//
+//             // console.log('[stream] client.onmessage buffer', fileId, offset, limit, filePart.data);
+//             navigator.serviceWorker.controller.postMessage({
+//                 '@type': 'getFileResult',
+//                 fileId,
+//                 offset,
+//                 limit,
+//                 data: filePart.data
+//             });
+//             break;
+//         }
+//     }
+// };
